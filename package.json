@@ -1,0 +1,16 @@
+{
+  "name": "priceagree",
+  "version": "1.0.0",
+  "description": "price agregator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Thuan Vu",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^10.0.0",
+    "readline": "^1.3.0",
+    "xlsx": "^0.17.0"
+  }
+}
