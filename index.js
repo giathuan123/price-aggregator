@@ -1,17 +1,13 @@
-const puppeteer = require('puppeteer')
-const readline = require('readline').createInterface({
-  input: process.stdin,
-  ouput: process.stdout
-})
-async function wait(){
-  readline.question('Close?', ()=>{
-  })
-  readline.close();
-}
+const priceGetter = require('./priceGetter.js');
+const read = require('./read.js');
+
 async function main(){
-  const browser = await puppeteer.launch({headless: false});
-  const page = await browser.newPage();
-  await page.goto('https://google.com');
-  await browser.close();
+  const pg = await new priceGetter.priceGetter('https://google.com');
+  await pg.getPrice();
+
 }
-main();
+(async ()=>{
+  await main();
+  await priceGetter.browser.close();
+  read.stdio.close();
+})();
