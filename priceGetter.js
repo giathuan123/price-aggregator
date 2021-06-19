@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
-
+const LAZ_CAP = "Sorry";
+const SHOP_CAP = "kajhsdflaksjdf";
 class priceGetter{
     static _browser;
     static _opts;
@@ -34,11 +35,12 @@ class priceGetter{
     async _getLazadaPrice(){
         return new Promise(async (res)=>{
             const title = await this.page.title();
-            if(title.includes('Sorry'))
-                throw new Error('~Captcha~');
-            this.price = await this.page.evaluate((price)=>{
-                parseFloat(pdpTrackingData.pdt_price.replace('$',''));
+            if(title.includes(LAZ_CAP))
+                await require('./read').prompt("");
+            this.price = await this.page.evaluate(()=>{
+                return Promise.resolve(+(document.querySelector("#module_product_price_1 > div > div > span").innerHTML.replace('$','')));
             });
+            console.log(this.price);
             if(this.price == -1)
                 throw new Error('Can\'t get price from lazada');
             res(this.price);
@@ -47,8 +49,29 @@ class priceGetter{
     }
     // todo shopee
     async _getShopeePrice(){
-        return new Promise((res)=>{
-            res();
+        return new Promise(async (res)=>{
+            const title = await this.page.title();
+            if(title.includes(SHOP_CAP))
+                await require('./read').prompt("");
+            await this.page.waitFor(10000)
+            this.price = await this.page.evaluate(()=>{
+                const data = Array.from(document.querySelectorAll("script[type='application/ld+json']")).map((node)=>{
+                    console.log(JSON.parse(node.innerHTML));
+                    return JSON.parse(node.innerHTML);
+                });
+                console.log(data);
+                for(d in data){
+                    if(data[d].offers){
+                        if(data[d].offers.price)
+                            console.log(data[d].offers.price);
+                            return Promise.resolve(data[d].offers.price);
+                    }
+                }
+            });
+            console.log(this.price);
+            if(this.price == -1)
+                throw new Error('Can\'t get price from Shopee');
+            res(this.price);
         }
         );
     }
