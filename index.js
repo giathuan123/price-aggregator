@@ -8,6 +8,8 @@ async function main(){
   await read.prompt("WAITING");
   await priceGetter._browser.close();
 }
+
+
 (async ()=>{
   await main();
   read.stdio.close();
