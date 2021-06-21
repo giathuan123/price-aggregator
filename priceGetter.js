@@ -1,15 +1,16 @@
 const puppeteer = require('puppeteer');
 const read = require('./read.js');
 const LAZ_CAP = "Sorry";
-const SHOP_CAP = "kajhsdflaksjdf";
-class priceGetter{
+const SHOP_CAP = "";
+class PriceGetter{
     static _browser;
-    static _opts = {headless: false};
+    static _opts = {headless: true};
     constructor(url){
         return new Promise( async (resolve, reject) => {
-            if(priceGetter._browser == undefined)
-                priceGetter._browser = await puppeteer.launch();
-            this.page = await priceGetter._browser.newPage();
+            if(PriceGetter._browser == undefined){
+                PriceGetter._browser = await puppeteer.launch(PriceGetter._opts);
+            }
+            this.page = await PriceGetter._browser.newPage();
             this.url = url;
             this.price = -1;
             if(this.page == undefined)
@@ -19,11 +20,11 @@ class priceGetter{
     }
     async getPrice(){
         return new Promise(async (res, rej) =>{
-        await this.page.goto(this.url, {'waitUntil': 'load'});
+        await this.page.goto(this.url);
         if(this.url.includes('shopee')){
-            this.price = await this._getPrice(SHOP_CAP, priceGetter._getShopeePrice);
+            this.price = await this._getPrice(SHOP_CAP, PriceGetter._getShopeePrice);
         }else if (this.url.includes('lazada')){
-            this.price = await this._getPrice(LAZ_CAP, priceGetter._getLazadaPrice);
+            this.price = await this._getPrice(LAZ_CAP, PriceGetter._getLazadaPrice);
         }else{
             throw new Error("URL is wrong");
         }
@@ -33,8 +34,9 @@ class priceGetter{
     async _getPrice(CAP, getter){
         return new Promise(async (res)=>{
             const title = await this.page.title();
-            if(title.includes(CAP))
-                await require('./read').prompt("");
+            if(title.includes(CAP)){
+                await read.prompt('Solve Captcha~' + CAP);
+            }
             const get = getter.bind(this);
             await get();
             if(this.price == -1)
@@ -43,27 +45,34 @@ class priceGetter{
         }
         );
     }
-    // todo shopee
     static async _getShopeePrice(){
-        await this.page.waitFor(3000);
-        this.price = await this.page.evaluate(()=>{
-            const data = Array.from(document.querySelectorAll("script[type='application/ld+json']")).map((node)=>{
+        const scriptSelector = "script[type='application/ld+json']";
+        await this.page.waitForFunction((scriptSelector)=>{ 
+            return (document.querySelectorAll(scriptSelector).length) == 4;
+        }, {}, scriptSelector);
+        this.price = await this.page.evaluate((scriptSelector)=>{
+            const data = Array.from(document.querySelectorAll(scriptSelector)).map((node)=>{
                 return JSON.parse(node.innerHTML);
             });
             for(d in data){
                 if(data[d].offers){
                     if(data[d].offers.price)
                         console.log(data[d].offers.price);
-                        return Promise.resolve(data[d].offers.price);
+                        return Promise.resolve(parseFloat(data[d].offers.price));
                 }
             }
-        });
+        }, scriptSelector);
     }
     static async _getLazadaPrice(){
         this.price = await this.page.evaluate(()=>{
-            return Promise.resolve(+(document.querySelector("#module_product_price_1 > div > div > span").innerHTML.replace('$','')));
+            let price;
+            if(price = document.querySelector("#module_product_price_1 > div > div > span"))
+                return Promise.resolve(parseFloat(price.innerHTML.replace('$','')));
+            return Promise.resolve(-1);
         });
     }
 }
-
-module.exports.priceGetter = priceGetter;
+module.exports = {
+    PriceGetter,
+    read
+}

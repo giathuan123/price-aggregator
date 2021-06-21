@@ -6,7 +6,7 @@ const stdio = require('readline').createInterface({
 let prompt = function(question, callback){
     return new Promise(resolve=>{
         stdio.question(question, (answer)=>{
-            typeof callbacl == "function" && callback();
+            typeof callback == "function" && callback(answer);
             resolve(stdio.pause());
     });
     })
