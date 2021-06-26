@@ -1,7 +1,19 @@
 const puppeteer = require('puppeteer');
 const read = require('./read.js');
 const LAZ_CAP = "Sorry";
-const SHOP_CAP = "";
+const SHOP_CAP = "_____";
+async function solveCaptcha(page){
+  console.log("Hit Captcha");
+  await page.waitForSelector('.nc_iconfont.btn_slide');
+  const sliderEl = await page.$('.slidetounlock');
+  const slider = await sliderEl.boundingBox();
+  const slideHandle = await page.$('.nc_iconfont.btn_slide');
+  const handle = await slideHandle.boundingBox();
+  await page.mouse.move(handle.x + handle.width/2, handle.y + handle.height/2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + slider.width, handle.y + handle.height/2, {steps:50});
+  await page.waitForNavigation();
+}
 class PriceGetter{
     static _browser;
     static _opts = {headless: true};
@@ -35,12 +47,13 @@ class PriceGetter{
         return new Promise(async (res)=>{
             const title = await this.page.title();
             if(title.includes(CAP)){
-                await read.prompt('Solve Captcha~' + CAP);
+              await solveCaptcha(this.page);
             }
             const get = getter.bind(this);
             await get();
-            if(this.price == -1)
+            if(this.price == -1){
                 throw new Error('Can\'t get price');
+            }
             res(this.price);
         }
         );
