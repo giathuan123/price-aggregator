@@ -1,20 +1,45 @@
 const { PriceGetter, read } = require('./priceGetter.js');
-const LAZ_URL = "https://www.lazada.sg/products/local-warranty-canon-pixma-e560-e560r-advanced-wireless-all-in-one-with-auto-duplex-printing-colour-inkjet-printer-e-560r-e-560-e-560-colour-printer-color-inkjet-printer-color-printer-ink-tank-printer-inktank-printer-i309128437-s560548854.html?spm=a2o42.searchlist.list.4.795d7db226LrCG&search=1&freeshipping=1";
-const SHOP_URL = "https://shopee.sg/Canon-PIXMA-E560-E560R-Advanced-Wireless-All-In-One-with-Auto-Duplex-Colour-Printer-Color-Inkjet-Printer-Color-Printer-i.28714108.2133533289";
+const reader = require('xlsx');
+const our_laz_col = 'C';
+const our_shop_col = 'D';
+const FIRST_ROW = 2;
+const LAST_ROW = 2;
+const comp_cols = ['E', 'F', 'G'];
+const lowest_price = 'H';
+const perc_comp = 'I';
+
+async function getPrice(price, getters){
+  getters.forEach((getter)=>{
+    getter.getPrice().then(p=>price.push(p)).catch((e)=>{
+    });
+  });
+}
 async function main(){
-  const pg = await new PriceGetter(LAZ_URL);
-  const laz = await new PriceGetter(LAZ_URL);
-  await laz.getPrice();
-  await pg.getPrice();
-  await laz.getPrice();
-  await laz.getPrice();
-  await laz.getPrice();
-  await pg.getPrice();
-  await pg.getPrice();
-  await pg.getPrice();
-  console.log("Lazprice: ", laz.price);
-  console.log("Shopprice: ", pg.price);
-  await PriceGetter._browser.close();
+  const laz = await new PriceGetter('');
+  const shopee = await new PriceGetter('');
+  const comp1 = await new PriceGetter('');
+  const comp2 = await new PriceGetter('');
+  const comp3 = await new PriceGetter('');
+  const getters = [laz, shopee, comp1, comp2, comp3];
+  var workbook = reader.readFile('./Price check for Lazada.xlsx');
+
+  var sheet = workbook.Sheets['Sheet1'];
+  for(var i = FIRST_ROW; i <= LAST_ROW; i++){
+    // GET DATA
+    var url_list = [];
+    url_list.push(sheet[our_laz_col + i].v);
+    url_list.push(sheet[our_shop_col + i].v);
+    comp_cols.forEach((val)=>{url_list.push(sheet[val+i].v);});
+    console.log(url_list);
+    laz.url = url_list[0];
+    shopee.url = url_list[1];
+    comp1.url = url_list[2];
+    comp2.url = url_list[3];
+    comp3.url = url_list[4];
+    var price = [];
+    await getPrice(price, getters);
+    console.log(price);
+  }
 }
 
 

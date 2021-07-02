@@ -33,18 +33,20 @@ class PriceGetter{
     async getPrice(){
         return new Promise(async (res, rej) =>{
         await this.page.goto(this.url);
+        try{
         if(this.url.includes('shopee')){
             this.price = await this._getPrice(SHOP_CAP, PriceGetter._getShopeePrice);
         }else if (this.url.includes('lazada')){
             this.price = await this._getPrice(LAZ_CAP, PriceGetter._getLazadaPrice);
-        }else{
-            throw new Error("URL is wrong");
         }
         res(this.price);
+        }catch(e){
+            rej(e);
+        }
     });
     }
     async _getPrice(CAP, getter){
-        return new Promise(async (res)=>{
+        return new Promise(async (res, reject)=>{
             const title = await this.page.title();
             if(title.includes(CAP)){
               await solveCaptcha(this.page);
@@ -52,7 +54,7 @@ class PriceGetter{
             const get = getter.bind(this);
             await get();
             if(this.price == -1){
-                throw new Error('Can\'t get price');
+                reject('Can\'t get price');
             }
             res(this.price);
         }
