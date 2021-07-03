@@ -16,19 +16,19 @@ async function solveCaptcha(page){
 }
 class PriceGetter{
     static _browser;
-    static _opts = {headless: true};
+    static _opts = {headless: false};
     constructor(url){
-        return new Promise( async (resolve, reject) => {
-            if(PriceGetter._browser == undefined){
-                PriceGetter._browser = await puppeteer.launch(PriceGetter._opts);
-            }
-            this.page = await PriceGetter._browser.newPage();
-            this.url = url;
-            this.price = -1;
-            if(this.page == undefined)
-                reject("Can't create newPage");
-            resolve(this);
-        });
+      return new Promise( async(resolve, reject) =>{
+        if(PriceGetter._browser == undefined){
+            PriceGetter._browser = await puppeteer.launch(PriceGetter._opts);
+        }
+        this.page = await PriceGetter._browser.newPage();
+        this.url = url;
+        this.price = -1;
+        if(this.page == undefined)
+            reject("Can't create newPage");
+        resolve(this);
+      });
     }
     async getPrice(){
         return new Promise(async (res, rej) =>{
