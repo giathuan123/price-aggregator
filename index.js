@@ -1,6 +1,6 @@
 const { PriceGetter, read } = require('./priceGetter.js');
 const reader = require('xlsx');
-const FIRST_ROW = 18;
+const FIRST_ROW = 2;
 const LAST_ROW = 18;
 const comp_cols = ['G', 'H', 'I'];
 const sale_price_col = 'C';
@@ -23,6 +23,7 @@ async function main(){
     var workbook = reader.readFile(filename);
     var sheet = workbook.Sheets['HP'];
     for(var i = FIRST_ROW; i <= LAST_ROW; i++){
+      console.log("Working on line", i);
       var url_list = [];
       comp_cols.forEach((val)=>{
         const value = sheet[val+i] ? sheet[val+i].v: null;    
@@ -31,12 +32,12 @@ async function main(){
       getters[0].url = url_list[0];
       getters[1].url = url_list[1];
       getters[2].url = url_list[2];
+      const a = await getPrice(getters);
+      price = await Promise.all(a);
+      price = price.filter(p=>p); 
+      console.log("The minimum price of row:", i, "is", Math.min(...price));
     }
-    const a = await getPrice(getters);
-    console.log(a);
-    const price = await Promise.all(a);
-    console.log(price)
-    res(price);
+    res("Done")
   } catch(e){
     rej(e);
   }
@@ -46,5 +47,6 @@ async function main(){
 
 (async ()=>{
   await main();
+  await PriceGetter._browser.close();
   read.stdio.close();
 })();

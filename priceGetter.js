@@ -14,8 +14,9 @@ async function solveCaptcha(page){
   await page.waitForNavigation();
 }
 class PriceGetter{
+    static seenArray = {};
     static _browser;
-    static _opts = {headless: false};
+    static _opts = {headless: true};
     constructor(url){
       return new Promise( async(resolve, reject) =>{
         if(PriceGetter._browser == undefined){
@@ -31,6 +32,10 @@ class PriceGetter{
     }
     async getPrice(){
         return new Promise(async (res, rej) =>{
+        if(PriceGetter.seenArray[this.url] != undefined){
+           console.log("From Seen Array");
+           res(PriceGetter.seenArray[this.url])
+        }
         if(this.url == null){
           res(null);
         }
@@ -42,7 +47,8 @@ class PriceGetter{
             }else if (this.url.includes('lazada')){
                 this.price = await this._getPrice(LAZ_CAP, PriceGetter._getLazadaPrice);
             }
-          res(this.price);
+            PriceGetter.seenArray[this.url] = this.price;
+            res(this.price);
           }catch(e){
               rej(e);
           }
@@ -56,34 +62,32 @@ class PriceGetter{
               await solveCaptcha(this.page);
             }
             const get = getter.bind(this);
-            await get();
-            if(this.price == -1){
-                reject('Can\'t get price');
-            }
+            this.price = await get();
             res(this.price);
         }
         );
     }
     static async _getShopeePrice(){
-        const scriptSelector = "script[type='application/ld+json']";
-        await this.page.waitForFunction((scriptSelector)=>{ 
-            return (document.querySelectorAll(scriptSelector).length) == 4;
-        }, {}, scriptSelector);
-        this.price = await this.page.evaluate((scriptSelector)=>{
-            const data = Array.from(document.querySelectorAll(scriptSelector)).map((node)=>{
-                return JSON.parse(node.innerHTML);
-            });
-            for(d in data){
-                if(data[d].offers){
-                    if(data[d].offers.price)
-                        console.log(data[d].offers.price);
-                        return Promise.resolve(parseFloat(data[d].offers.price));
-                }
-            }
-        }, scriptSelector);
+        await this.page.bringToFront();
+        await this.page.waitForFunction(()=>{
+          const nodeList = Array.from(document.querySelectorAll("script[type='application/ld+json']"));
+          const jsonList = nodeList.map(d=>JSON.parse(d.innerHTML));
+          for( i in jsonList){
+              if(jsonList[i].offers != undefined){
+                return true;
+              }
+          }
+        })
+        const data = await this.page.evaluate(()=>{
+        return (Array.from(document.querySelectorAll("script[type='application/ld+json']")).map(d=>JSON.parse(d.innerHTML))).filter(d=>d.offers)[0];
+        });
+        if(data.offers["@type"]=="AggregateOffer"){
+           return Promise.resolve(parseFloat(data.offers.lowPrice));
+        }
+        return Promise.resolve(parseFloat(data.offers.lowPrice));
     }
     static async _getLazadaPrice(){
-        this.price = await this.page.evaluate(()=>{
+        return await this.page.evaluate(()=>{
             let price;
             if(price = document.querySelector("#module_product_price_1 > div > div > span"))
                 return Promise.resolve(parseFloat(price.innerHTML.replace('$','')));
