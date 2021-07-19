@@ -3,7 +3,6 @@ const read = require('./read.js');
 const LAZ_CAP = "Sorry";
 const SHOP_CAP = "_____";
 async function solveCaptcha(page){
-  console.log("Hit Captcha");
   await page.waitForSelector('.nc_iconfont.btn_slide');
   const sliderEl = await page.$('.slidetounlock');
   const slider = await sliderEl.boundingBox();
@@ -32,16 +31,21 @@ class PriceGetter{
     }
     async getPrice(){
         return new Promise(async (res, rej) =>{
-        await this.page.goto(this.url);
-        try{
-        if(this.url.includes('shopee')){
-            this.price = await this._getPrice(SHOP_CAP, PriceGetter._getShopeePrice);
-        }else if (this.url.includes('lazada')){
-            this.price = await this._getPrice(LAZ_CAP, PriceGetter._getLazadaPrice);
+        if(this.url == null){
+          res(null);
         }
-        res(this.price);
-        }catch(e){
-            rej(e);
+        else{
+          try{
+            await this.page.goto(this.url);
+            if(this.url.includes('shopee')){
+                this.price = await this._getPrice(SHOP_CAP, PriceGetter._getShopeePrice);
+            }else if (this.url.includes('lazada')){
+                this.price = await this._getPrice(LAZ_CAP, PriceGetter._getLazadaPrice);
+            }
+          res(this.price);
+          }catch(e){
+              rej(e);
+          }
         }
     });
     }
