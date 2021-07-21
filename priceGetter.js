@@ -3,6 +3,8 @@ const read = require('./read.js');
 const LAZ_CAP = "Sorry";
 const SHOP_CAP = "_____";
 async function solveCaptcha(page){
+  return new Promise( async (res, rej)=>{
+  await page.bringToFront();
   await page.waitForSelector('.nc_iconfont.btn_slide');
   const sliderEl = await page.$('.slidetounlock');
   const slider = await sliderEl.boundingBox();
@@ -12,6 +14,8 @@ async function solveCaptcha(page){
   await page.mouse.down();
   await page.mouse.move(handle.x + slider.width, handle.y + handle.height/2, {steps:50});
   await page.waitForNavigation();
+  res("Done captcha");
+  });
 }
 class PriceGetter{
     static seenArray = {};
@@ -32,12 +36,14 @@ class PriceGetter{
     }
     async getPrice(){
         return new Promise(async (res, rej) =>{
-        if(PriceGetter.seenArray[this.url] != undefined){
-           console.log("From Seen Array");
-           res(PriceGetter.seenArray[this.url])
-        }
         if(this.url == null){
           res(null);
+          return;
+        }
+        else if(PriceGetter.seenArray[this.url] != undefined){
+           console.log("From Seen Array");
+           res(PriceGetter.seenArray[this.url])
+           return;
         }
         else{
           try{
@@ -50,13 +56,15 @@ class PriceGetter{
             PriceGetter.seenArray[this.url] = this.price;
             res(this.price);
           }catch(e){
-              rej(e);
+            console.log("Something went wrong:", this.url)
+            rej(e);
           }
         }
     });
     }
     async _getPrice(CAP, getter){
-        return new Promise(async (res, reject)=>{
+        return new Promise(async (res, rej)=>{
+            try{
             const title = await this.page.title();
             if(title.includes(CAP)){
               await solveCaptcha(this.page);
@@ -64,8 +72,11 @@ class PriceGetter{
             const get = getter.bind(this);
             this.price = await get();
             res(this.price);
-        }
-        );
+            }catch(e){
+              console.log(this.url)
+              rej(e);
+            }
+        });
     }
     static async _getShopeePrice(){
         await this.page.bringToFront();
@@ -84,14 +95,14 @@ class PriceGetter{
         if(data.offers["@type"]=="AggregateOffer"){
            return Promise.resolve(parseFloat(data.offers.lowPrice));
         }
-        return Promise.resolve(parseFloat(data.offers.lowPrice));
+        return Promise.resolve(parseFloat(data.offers.price));
     }
     static async _getLazadaPrice(){
         return await this.page.evaluate(()=>{
             let price;
             if(price = document.querySelector("#module_product_price_1 > div > div > span"))
-                return Promise.resolve(parseFloat(price.innerHTML.replace('$','')));
-            return Promise.resolve(-1);
+                return parseFloat(price.innerHTML.replace('$',''));
+            return null;
         });
     }
 }

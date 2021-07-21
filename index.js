@@ -1,15 +1,29 @@
 const { PriceGetter, read } = require('./priceGetter.js');
+const path = require('path');
 const reader = require('xlsx');
-const FIRST_ROW = 2;
-const LAST_ROW = 18;
-const comp_cols = ['G', 'H', 'I'];
-const sale_price_col = 'C';
+const NO_GETTERS = 18;
 const filename = './Competitor Price Check_updated.xlsx'
-
-async function getPrice(getters){
-  return getters.map((getter)=>getter.getPrice().catch((e)=>console.log(e)));
+const dest_sheet =  path.basename(filename) + ' prices.xlsx'
+const  new_wb = reader.utils.book_new();
+async function getPrice(sheet, getters){
+  var i = 2;
+  while(sheet['A'+i] != undefined){
+    console.log('Running Line ',i)
+    for(var j = 0, col=3;j<18;j++,col++){
+      getters[j].url = (sheet[reader.utils.encode_col(col)+i] ? sheet[reader.utils.encode_col(col)+i].v: null); 
+    }
+    if(i % 10 == 0) reader.writeFile(new_wb, 'new sheets2.xlsx');
+    const prices = await Promise.all(getters.map(getter=>getter.getPrice().catch(e=>console.log(e))));
+    for(var j = 0, col=3;j<18;j++,col++){
+      if(sheet[reader.utils.encode_col(col)+i]) sheet[reader.utils.encode_col(col)+i].v = prices[j];
+    }
+    i++;
+  }
+  reader.writeFile(new_wb, 'new sheets2.xlsx');
+  return Promise.resolve("Done");
 }
 async function createGetter(number){
+
   var getters = [];
   for(var i = 0; i < number; i++){
     getters.push(await new PriceGetter(''));
@@ -19,25 +33,16 @@ async function createGetter(number){
 async function main(){
   return new Promise(async (res, rej) =>{
   try{
-    const getters = await createGetter(3);
+    getters = await createGetter(NO_GETTERS);
     var workbook = reader.readFile(filename);
-    var sheet = workbook.Sheets['HP'];
-    for(var i = FIRST_ROW; i <= LAST_ROW; i++){
-      console.log("Working on line", i);
-      var url_list = [];
-      comp_cols.forEach((val)=>{
-        const value = sheet[val+i] ? sheet[val+i].v: null;    
-        url_list.push(value);
-      });
-      getters[0].url = url_list[0];
-      getters[1].url = url_list[1];
-      getters[2].url = url_list[2];
-      const a = await getPrice(getters);
-      price = await Promise.all(a);
-      price = price.filter(p=>p); 
-      console.log("The minimum price of row:", i, "is", Math.min(...price));
+    sheetName = workbook.SheetNames;
+    new_sheets = [ workbook.Sheets['HP']];
+    reader.utils.book_append_sheet(new_wb,new_sheets[0], "HP_price")
+    for( const sheet of new_sheets){
+        const done = await getPrice(sheet, getters);
     }
-    res("Done")
+    console.log("Ending");
+    res('ended');
   } catch(e){
     rej(e);
   }
@@ -47,6 +52,5 @@ async function main(){
 
 (async ()=>{
   await main();
-  await PriceGetter._browser.close();
-  read.stdio.close();
+  console.log("Here right now");
 })();
