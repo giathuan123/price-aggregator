@@ -1,17 +1,19 @@
-const stdio = require('readline').createInterface({
-    input: process.stdin,
-    output: process.stdout
-})
+const readline = require('readline');
 
-let prompt = function(question, callback){
-    return new Promise(resolve=>{
-        stdio.question(question, (answer)=>{
-            typeof callback == "function" && callback(answer);
-            resolve(stdio.pause());
+const input = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+});
+
+function cin(s){
+  return new Promise((res)=>{
+    input.question(s,(data)=>{
+     res(data); 
     });
-    })
+  });
+  
 }
+
 module.exports = {
-    prompt,
-    stdio
+  cin: cin
 }

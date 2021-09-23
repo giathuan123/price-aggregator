@@ -1,9 +1,8 @@
-const { PriceGetter, read } = require('./priceGetter.js');
+const { PriceGetter } = require('./priceGetter.js');
+const { cin } = require('./read.js')
 const path = require('path');
 const reader = require('xlsx');
 const NO_GETTERS = 18;
-const filename = './Competitor Price Check_updated.xlsx'
-const dest_sheet =  path.basename(filename) + ' prices.xlsx'
 const  new_wb = reader.utils.book_new();
 async function getPrice(sheet, getters){
   var i = 2;
@@ -33,11 +32,15 @@ async function createGetter(number){
 async function main(){
   return new Promise(async (res, rej) =>{
   try{
+    
+    const filename = await cin("Please enter the filename (dont include .xslx extension): ");
+    const SHEET = await cin("Please enter the sheetname: ");
+    
     getters = await createGetter(NO_GETTERS);
     var workbook = reader.readFile(filename);
     sheetName = workbook.SheetNames;
-    new_sheets = [ workbook.Sheets['HP']];
-    reader.utils.book_append_sheet(new_wb,new_sheets[0], "HP_price")
+    new_sheets = [ workbook.Sheets[SHEET] ];
+    reader.utils.book_append_sheet(new_wb,new_sheets[0], SHEET + 'price')
     for( const sheet of new_sheets){
         const done = await getPrice(sheet, getters);
     }
@@ -52,5 +55,4 @@ async function main(){
 
 (async ()=>{
   await main();
-  console.log("Here right now");
 })();

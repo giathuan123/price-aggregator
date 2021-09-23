@@ -1,7 +1,8 @@
 const puppeteer = require('puppeteer');
-const read = require('./read.js');
+
 const LAZ_CAP = "Sorry";
 const SHOP_CAP = "_____";
+
 async function solveCaptcha(page){
   return new Promise( async (res, rej)=>{
   await page.bringToFront();
@@ -108,5 +109,4 @@ class PriceGetter{
 }
 module.exports = {
     PriceGetter,
-    read
 }
