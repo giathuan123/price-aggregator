@@ -1,10 +1,13 @@
 const puppeteer = require('puppeteer');
+const { Semaphore }  = require('await-semaphore');
+const sem = new Semaphore(1);
 
 const LAZ_CAP = "Sorry";
 const SHOP_CAP = "_____";
 
 async function solveCaptcha(page){
   return new Promise( async (res, rej)=>{
+  var release = await sem.acquire();
   await page.bringToFront();
   await page.waitForSelector('.nc_iconfont.btn_slide');
   const sliderEl = await page.$('.slidetounlock');
@@ -13,15 +16,14 @@ async function solveCaptcha(page){
   const handle = await slideHandle.boundingBox();
   await page.mouse.move(handle.x + handle.width/2, handle.y + handle.height/2);
   await page.mouse.down();
-  await page.mouse.move(handle.x + slider.width, handle.y + handle.height/2, {steps:50});
-  await page.waitForNavigation();
+  await page.mouse.move(handle.x + slider.width, handle.y + handle.height/2, {steps:50}); release();
   res("Done captcha");
   });
 }
 class PriceGetter{
     static seenArray = {};
     static _browser;
-    static _opts = {headless: true};
+    static _opts = {headless: false};
     constructor(url){
       return new Promise( async(resolve, reject) =>{
         if(PriceGetter._browser == undefined){
@@ -42,7 +44,7 @@ class PriceGetter{
           return;
         }
         else if(PriceGetter.seenArray[this.url] != undefined){
-           console.log("From Seen Array");
+           console.log("Getting from cache");
            res(PriceGetter.seenArray[this.url])
            return;
         }
@@ -66,9 +68,14 @@ class PriceGetter{
     async _getPrice(CAP, getter){
         return new Promise(async (res, rej)=>{
             try{
-            const title = await this.page.title();
+            var title = await this.page.title();
             if(title.includes(CAP)){
               await solveCaptcha(this.page);
+              title = await this.page.title();
+              if(title.includes(CAP)){
+                res("Can't get pass captcha: " + this.url);
+                return;
+              }
             }
             const get = getter.bind(this);
             this.price = await get();
@@ -80,6 +87,7 @@ class PriceGetter{
         });
     }
     static async _getShopeePrice(){
+        var release = await sem.acquire()
         await this.page.bringToFront();
         await this.page.waitForFunction(()=>{
           const nodeList = Array.from(document.querySelectorAll("script[type='application/ld+json']"));
@@ -93,6 +101,7 @@ class PriceGetter{
         const data = await this.page.evaluate(()=>{
         return (Array.from(document.querySelectorAll("script[type='application/ld+json']")).map(d=>JSON.parse(d.innerHTML))).filter(d=>d.offers)[0];
         });
+        release();
         if(data.offers["@type"]=="AggregateOffer"){
            return Promise.resolve(parseFloat(data.offers.lowPrice));
         }

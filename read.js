@@ -15,5 +15,6 @@ function cin(s){
 }
 
 module.exports = {
-  cin: cin
+  cin: cin,
+  input: input
 }
