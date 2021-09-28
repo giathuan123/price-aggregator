@@ -1,5 +1,5 @@
 ## COMPETITOR PRICE GETTER
---
+---
 ### Please install:
 - Node from https://www.nodejs.org
 - Git from https://git-scm.com/downloads 
@@ -25,12 +25,12 @@
 > Fourth enter the range of the columns of the urls.
 > Press enter
 > The bot should be running if it says: `Getting price in row` + row_number
---
+---
 ### Future upgrades
---
+---
 Will work on the UI for the future if this is an important bot. Let me know if you need the UI.
 ### Contact:
---
+---
 Name: Gia Thuan Vu
 Email: vugiathuan123@gmail.com
 Working hours: 24/7
